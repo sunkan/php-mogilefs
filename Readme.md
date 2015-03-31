@@ -1,5 +1,17 @@
 #Php MogileFs client
 
+##Install with composer:
+
+composer.json
+
+```json
+{
+    "require": {
+        "sunkan/php-mogilefs": "dev-master"
+    }
+}
+```
+
 ##Example
 
 ```php
