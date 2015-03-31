@@ -1,0 +1,17 @@
+{
+    "name": "sunkan/php-mogilefs",
+    "description": "MogileFs client for php",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Andreas Sundqvist",
+            "email": "andreas@forme.se"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "MogileFs\\": "src"
+        }
+    },
+}
