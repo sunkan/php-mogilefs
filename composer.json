@@ -1,6 +1,8 @@
 {
     "name": "sunkan/php-mogilefs",
     "description": "MogileFs client for php",
+    "keywords": ["mogilefs"],
+    "type": "library",
     "license": "MIT",
     "authors": [
         {
