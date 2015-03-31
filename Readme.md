@@ -40,7 +40,3 @@ $client->put('./hello.txt', 'hello_world.txt', 'assets');
 $handler = fopen('world.txt', 'r');
 $client->put($handler, 'world_hello.txt', 'assets');
 ```
-
-
-
-
