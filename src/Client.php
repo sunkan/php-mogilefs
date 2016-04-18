@@ -1,10 +1,22 @@
 <?php
+
 namespace MogileFs;
 
-class Client {
+use InvalidArgumentException;
+use RuntimeException;
+use UnexpectedValueException;
 
-    const SUCCESS = 'OK';    // Tracker success code
-    const ERROR = 'ERR';   // Tracker error code
+class Client
+{
+    /**
+     * Tracker success code
+     */
+    const SUCCESS = 'OK';
+
+    /**
+     * Tracker error code
+     */
+    const ERROR = 'ERR';
 
     private $socket;
 
@@ -16,13 +28,8 @@ class Client {
 
     private $device_status = ['alive', 'dead', 'down', 'drain', 'readonly'];
 
-    /**
-     * MogileFs MogileFs::__construct()
-     */
-    public function __construct() {
-    }
-
-    private function getConnection($trackers) {
+    private function getConnection(array $trackers)
+    {
         if ($this->socket && is_resource($this->socket) && !feof($this->socket)) {
             return $this->socket;
         }
@@ -48,7 +55,18 @@ class Client {
         }
     }
 
-    protected function doRequest($cmd, $args = []) {
+    /**
+     * Internal helper to make tracker request simpler
+     *
+     * @param  string $cmd  Command to send to tracker
+     * @param  array  $args
+     * @return array
+     * @throws RuntimeException
+     * @throws UnexpectedValueException
+     * @throws Exception
+     */
+    protected function doRequest($cmd, $args = [])
+    {
         $params = '';
         if (count($args)) {
             foreach ($args as $key => $value) {
@@ -56,17 +74,17 @@ class Client {
             }
         }
         if (!$this->isConnected()) {
-            throw new \RuntimeException(get_class($this) . '::_doRequest failed to obtain connection');
+            throw new RuntimeException(get_class($this) . '::_doRequest failed to obtain connection');
         }
         $socket = $this->socket;
 
         $result = fwrite($socket, $cmd . $params . "\n");
         if ($result === false) {
-            throw new \UnexpectedValueException(get_class($this) . "::_doRequest write failed");
+            throw new UnexpectedValueException(get_class($this) . "::_doRequest write failed");
         }
         $line = fgets($socket);
         if ($line === false) {
-            throw new \UnexpectedValueException(get_class($this) . "::_doRequest read failed");
+            throw new UnexpectedValueException(get_class($this) . "::_doRequest read failed");
         }
 
         $words = explode(' ', $line);
@@ -78,11 +96,11 @@ class Client {
             }
             switch ($words[1]) {
                 case 'unknown_key':
-                    throw new \Exception(get_class($this) . "::doRequest unknown_key {$args['key']}");
+                    throw new Exception(get_class($this) . "::doRequest unknown_key {$args['key']}");
                 case 'empty_file':
-                    throw new \Exception(get_class($this) . "::doRequest empty_file {$args['key']}");
+                    throw new Exception(get_class($this) . "::doRequest empty_file {$args['key']}");
                 default:
-                    throw new \Exception(get_class($this) . "::doRequest " . trim(urldecode($line)));
+                    throw new Exception(get_class($this) . "::doRequest " . trim(urldecode($line)));
             }
         }
 
@@ -90,7 +108,7 @@ class Client {
     }
 
     /**
-     * bool MogileFs::connect(string $host, int $port, string $domain[, float $timeout])
+     * Connect to tracker
      *
      * @param string $host
      * @param int $port
@@ -99,12 +117,13 @@ class Client {
      *
      * @return bool
      */
-    public function connect($host, $port = 7001, $domain = false, $timeout = 10) {
+    public function connect($host, $port = 7001, $domain = false, $timeout = 10)
+    {
         if (is_array($host)) {
             $trackers = $host;
         } else {
             $trackers = [
-                $host . ':' . $port
+                $host . ':' . $port,
             ];
         }
         $this->domain = $domain;
@@ -114,21 +133,33 @@ class Client {
         return $this->isConnected();
     }
 
-    public function setDomain($domain) {
+    /**
+     * Set domain to use
+     *
+     * @param string $domain
+     */
+    public function setDomain($domain)
+    {
         $this->domain = $domain;
     }
 
     /**
-     * bool MogileFs::isConnection()
+     * Check if is connected to tracker
+     *
+     * @return bool
      */
-    public function isConnected() {
+    public function isConnected()
+    {
         return $this->socket && is_resource($this->socket) && !feof($this->socket);
     }
 
     /**
-     * bool MogileFs::close()
+     * Closes connection to tracker
+     *
+     * @return bool
      */
-    public function close() {
+    public function close()
+    {
         if ($this->isConnected()) {
             return fclose($this->socket);
         }
@@ -137,7 +168,7 @@ class Client {
     }
 
     /**
-     * bool MogileFs::put(file, string $key, string $class[, bool $use_file])
+     * Upload data to tracker
      *
      * @param string $file
      * @param string $key
@@ -145,11 +176,12 @@ class Client {
      * @param bool $use_file
      *
      * @return bool
-     * @throws \Exception
+     * @throws Exception
      */
-    public function put($file, $key, $class, $use_file = true) {
+    public function put($file, $key, $class, $use_file = true)
+    {
         if ($key === null) {
-            throw new \InvalidArgumentException(get_class($this) . "::put key cannot be null");
+            throw new InvalidArgumentException(get_class($this) . "::put key cannot be null");
         }
         if ($use_file) {
             if (is_resource($file) && get_resource_type($file) == 'stream') {
@@ -158,13 +190,13 @@ class Client {
                 $fh = fopen($file, 'r');
             }
             if (!$fh) {
-                throw new \RuntimeException(get_class($this) . "::put failed to open file");
+                throw new RuntimeException(get_class($this) . "::put failed to open file");
             }
             $length = filesize($file);
         } else {
             $fh = fopen('php://memory', 'rw');
             if ($fh === false) {
-                throw new \RuntimeException(get_class($this) . "::put failed to open memory stream");
+                throw new RuntimeException(get_class($this) . "::put failed to open memory stream");
             }
             fwrite($fh, $file);
             rewind($fh);
@@ -177,7 +209,7 @@ class Client {
             [
                 'domain' => $this->domain,
                 'key' => $key,
-                'class' => $class
+                'class' => $class,
             ]
         );
         $uri = $location['path'];
@@ -192,12 +224,14 @@ class Client {
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Expect: ']);
         $response = curl_exec($ch);
         fclose($fh);
+
         if ($response === false) {
             $error = curl_error($ch);
             curl_close($ch);
-            throw new \RuntimeException(get_class($this) . "::put $error");
+            throw new RuntimeException(get_class($this) . "::put $error");
         }
         curl_close($ch);
+
         $this->doRequest(
             'CREATE_CLOSE',
             [
@@ -214,22 +248,23 @@ class Client {
     }
 
     /**
-     * array MogileFs::fileInfo(string $key)
+     * Get file info
      *
      * @param string $key
      *
-     * @return int
-     * @throws \Exception
+     * @return array
+     * @throws InvalidArgumentException
      */
-    public function fileInfo($key) {
+    public function fileInfo($key)
+    {
         if ($key === null) {
-            throw new \InvalidArgumentException(get_class($this) . "::fileInfo key cannot be null");
+            throw new InvalidArgumentException(get_class($this) . "::fileInfo key cannot be null");
         }
         $result = $this->doRequest(
             'FILE_INFO',
             [
                 'domain' => $this->domain,
-                'key' => $key
+                'key' => $key,
             ]
         );
 
@@ -237,17 +272,18 @@ class Client {
     }
 
     /**
-     * array MogileFs::get(string $key[, integer $pathcount = 2])
+     *  Get paths for key from tracker
      *
      * @param string $key
      * @param int $pathcount
      *
-     * @return int
-     * @throws \Exception
+     * @return array
+     * @throws InvalidArgumentException
      */
-    public function get($key, $pathcount = 2) {
+    public function get($key, $pathcount = 2)
+    {
         if ($key === null) {
-            throw new \InvalidArgumentException(get_class($this) . "::get key cannot be null");
+            throw new InvalidArgumentException(get_class($this) . "::get key cannot be null");
         }
 
         $result = $this->doRequest(
@@ -255,7 +291,7 @@ class Client {
             [
                 'domain' => $this->domain,
                 'key' => $key,
-                'pathcount' => $pathcount
+                'pathcount' => $pathcount,
             ]
         );
 
@@ -263,23 +299,24 @@ class Client {
     }
 
     /**
-     * bool MogileFs::delete(string $key)
+     * Delete key from tracker
      *
      * @param string $key
      *
      * @return bool
-     * @throws \Exception
+     * @throws InvalidArgumentException
      */
-    public function delete($key) {
+    public function delete($key)
+    {
         if ($key === null) {
-            throw new \InvalidArgumentException(get_class($this) . "::delete key cannot be null");
+            throw new InvalidArgumentException(get_class($this) . "::delete key cannot be null");
         }
 
         $this->doRequest(
             'DELETE',
             [
                 'domain' => $this->domain,
-                'key' => $key
+                'key' => $key,
             ]
         );
 
@@ -287,20 +324,21 @@ class Client {
     }
 
     /**
-     * bool MogileFs::rename(string $from_key, string $to_key)
+     * Rename key
      *
      * @param string $from_key
      * @param string $to_key
      *
      * @return bool
-     * @throws \Exception
+     * @throws InvalidArgumentException
      */
-    public function rename($from_key, $to_key) {
+    public function rename($from_key, $to_key)
+    {
         if ($from_key === null) {
-            throw new \InvalidArgumentException(get_class($this) . "::rename from_key cannot be null");
+            throw new InvalidArgumentException(get_class($this) . "::rename from_key cannot be null");
         }
         if ($to_key === null) {
-            throw new \InvalidArgumentException(get_class($this) . "::rename to_key cannot be null");
+            throw new InvalidArgumentException(get_class($this) . "::rename to_key cannot be null");
         }
 
         $this->doRequest(
@@ -308,7 +346,7 @@ class Client {
             [
                 'domain' => $this->domain,
                 'from_key' => $from_key,
-                'to_key' => $to_key
+                'to_key' => $to_key,
             ]
         );
 
@@ -316,23 +354,23 @@ class Client {
     }
 
     /**
-     * array MogileFs::listKeys(string $prefix, string $after, integer $limit)
+     * Find keys with prefix or suffix
      *
      * @param string $prefix
-     * @param string $after
+     * @param string $suffix
      * @param int $limit
      *
-     * @return int
-     * @throws \Exception
+     * @return array
      */
-    public function listKeys($prefix, $after, $limit) {
+    public function listKeys($prefix, $suffix, $limit)
+    {
         $result = $this->doRequest(
             'LIST_KEYS',
             [
                 'domain' => $this->domain,
                 'prefix' => $prefix,
                 'after' => $after,
-                'limit' => (int) $limit
+                'limit' => (int) $limit,
             ]
         );
 
@@ -340,27 +378,28 @@ class Client {
     }
 
     /**
-     * bool MogileFs::listFids(integer $from, integer $to)
+     * Get range of file ids
      *
      * @param int $from
      * @param int $to
      *
-     * @return int
-     * @throws \Exception
+     * @return array
+     * @throws InvalidArgumentException
      */
-    public function listFids($from, $to) {
+    public function listFids($from, $to)
+    {
         if (!is_int($from)) {
-            throw new \InvalidArgumentException(get_class($this) . "::listFids from must be an integer");
+            throw new InvalidArgumentException(get_class($this) . "::listFids from must be an integer");
         }
         if (!is_int($to)) {
-            throw new \InvalidArgumentException(get_class($this) . "::listFids to must be an integer");
+            throw new InvalidArgumentException(get_class($this) . "::listFids to must be an integer");
         }
         $result = $this->doRequest(
             'LIST_FIDS',
             [
                 'domain' => $this->domain,
                 'from' => $from,
-                'to' => $to
+                'to' => $to,
             ]
         );
 
@@ -368,9 +407,12 @@ class Client {
     }
 
     /**
-     * array MogileFs::getDomains()
+     * Get all domains
+     *
+     * @return array
      */
-    public function getDomains() {
+    public function getDomains()
+    {
         $res = $this->doRequest('GET_DOMAINS');
 
         $domains = [];
@@ -382,7 +424,7 @@ class Client {
             }
             $domains[] = [
                 'name' => $res[$dom],
-                'classes' => $classes
+                'classes' => $classes,
             ];
         }
 
@@ -390,45 +432,49 @@ class Client {
     }
 
     /**
-     * array MogileFs::getHosts()
-     * GET_HOSTS domain=%s
+     * Retrive tracker hosts
+     *
+     * @return array
      */
-    public function getHosts() {
+    public function getHosts()
+    {
         return $this->doRequest(
             'GET_HOSTS',
             [
-                'domain' => $this->domain
+                'domain' => $this->domain,
             ]
         );
     }
 
     /**
-     * array MogileFs::getDevices()
+     * Get tracker devices
+     *
+     * @return array
      */
-    public function getDevices() {
+    public function getDevices()
+    {
         return $this->doRequest(
             'GET_DEVICES',
             [
-                'domain' => $this->domain
+                'domain' => $this->domain,
             ]
         );
     }
 
     /**
-     * bool MogileFs::sleep(integer $duration)
-     * SLEEP domain=%s&duration=%d
+     * Make tracker sleep for $duration
      *
      * @param int $duration
      *
      * @return bool
-     * @throws \Exception
      */
-    public function sleep($duration) {
+    public function sleep($duration)
+    {
         $this->doRequest(
             'SLEEP',
             [
                 'domain' => $this->domain,
-                'duration' => $duration
+                'duration' => $duration,
             ]
         );
 
@@ -436,17 +482,17 @@ class Client {
     }
 
     /**
-     * array MogileFs::stats(integer $all)
-     *   STATS domain=%s&all=%s
+     * Retrive stats from tracker
      *
      * @param int $all
      *
-     * @return int
-     * @throws \Exception
+     * @return array
+     * @throws InvalidArgumentException
      */
-    public function stats($all = 1) {
+    public function stats($all = 1)
+    {
         if (!is_int($all)) {
-            throw new \InvalidArgumentException(get_class($this) . "::stats all must be an integer");
+            throw new InvalidArgumentException(get_class($this) . "::stats all must be an integer");
         }
         if ($all > 1) {
             $all = 1;
@@ -456,41 +502,43 @@ class Client {
             'STATS',
             [
                 'domain' => $this->domain,
-                'all' => $all
+                'all' => $all,
             ]
         );
     }
 
     /**
-     * bool MogileFs::replicate()
-     * REPLICATE_NOW domain=%s
+     * Force start replication
+     *
+     * @return array
      */
-    public function replicate() {
+    public function replicate()
+    {
         return $this->doRequest(
             'REPLICATE_NOW',
             [
-                'domain' => $this->domain
+                'domain' => $this->domain,
             ]
         );
     }
 
     /**
-     * array MogileFs::createDevice(string $devid, string $status)
-     * CREATE_DEVICE domain=%s&status=%s&devid=%s
+     * Create a new device on tracker
      *
-     * @param string $devId
+     * @param int $devId
      * @param string $status
      *
-     * @return int
-     * @throws \Exception
+     * @return array
+     * @throws InvalidArgumentException
      */
-    public function createDevice($devId, $status) {
+    public function createDevice($devId, $status)
+    {
         if (!is_int($devId)) {
-            throw new \InvalidArgumentException(get_class($this) . "::createDevice devId must be an integer");
+            throw new InvalidArgumentException(get_class($this) . "::createDevice devId must be an integer");
         }
         $status = strtolower($status);
         if (!in_array($status, $this->device_status)) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 get_class($this) . "::createDevice status must be on off this:" . implode(',', $this->device_status)
             );
         }
@@ -500,60 +548,59 @@ class Client {
             [
                 'domain' => $this->domain,
                 'status' => $status,
-                'devid' => $devId
+                'devid' => $devId,
             ]
         );
     }
 
     /**
-     * array MogileFs::createDomain(string $domain)
-     * CREATE_DOMAIN domain=%s
+     * Create a new domain
      *
      * @param string $domain
      *
-     * @return int
-     * @throws \Exception
+     * @return array
      */
-    public function createDomain($domain) {
+    public function createDomain($domain)
+    {
         return $this->doRequest(
             'CREATE_DOMAIN',
             [
-                'domain' => strtolower($domain)
+                'domain' => strtolower($domain),
             ]
         );
     }
 
     /**
-     * array MogileFs::deleteDomain(string $domain)
+     * Delete domain
      *
      * @param string $domain
      *
      * @return int
-     * @throws \Exception
      */
-    public function deleteDomain($domain) {
+    public function deleteDomain($domain)
+    {
         return $this->doRequest(
             'DELETE_DOMAIN',
             [
-                'domain' => $domain
+                'domain' => $domain,
             ]
         );
     }
 
     /**
-     * array MogileFs::createClass(string $domain, string $class, string $mindevcount)
-     * CREATE_CLASS domain=%s&class=%s&mindevcount=%d
+     * Create new class for domain
      *
      * @param string $domain
      * @param string $class
      * @param int $mindevcount
      *
      * @return int
-     * @throws \Exception
+     * @throws InvalidArgumentException
      */
-    public function createClass($domain, $class, $mindevcount) {
+    public function createClass($domain, $class, $mindevcount)
+    {
         if (!is_int($mindevcount)) {
-            throw new \InvalidArgumentException(get_class($this) . "::createClass mindevcount must be an integer");
+            throw new InvalidArgumentException(get_class($this) . "::createClass mindevcount must be an integer");
         }
 
         return $this->doRequest(
@@ -561,25 +608,25 @@ class Client {
             [
                 'domain' => $domain,
                 'class' => $class,
-                'mindevcount' => $mindevcount
+                'mindevcount' => $mindevcount,
             ]
         );
     }
 
     /**
-     * array MogileFs::updateClass(string $domain, string $class, string $mindevcount)
-     * UPDATE_CLASS domain=%s&class=%s&mindevcount=%d&update=1
+     * Update class for domain
      *
      * @param string $domain
      * @param string $class
      * @param int $mindevcount
      *
      * @return int
-     * @throws \Exception
+     * @throws InvalidArgumentException
      */
-    public function updateClass($domain, $class, $mindevcount) {
+    public function updateClass($domain, $class, $mindevcount)
+    {
         if (!is_int($mindevcount)) {
-            throw new \InvalidArgumentException(get_class($this) . "::updateClass mindevcount must be an integer");
+            throw new InvalidArgumentException(get_class($this) . "::updateClass mindevcount must be an integer");
         }
 
         return $this->doRequest(
@@ -588,57 +635,54 @@ class Client {
                 'domain' => $domain,
                 'class' => $class,
                 'mindevcount' => $mindevcount,
-                'update' => 1
+                'update' => 1,
             ]
         );
     }
 
     /**
-     *
-     * DELETE_CLASS domain=%s&class=%s
+     * Delete class from domain
      *
      * @param string $domain
      * @param string $class
      *
      * @return int
-     * @throws \Exception
      */
-    public function deleteClass($domain, $class) {
+    public function deleteClass($domain, $class)
+    {
         return $this->doRequest(
             'DELETE_CLASS',
             [
                 'domain' => $domain,
-                'class' => $class
+                'class' => $class,
             ]
         );
     }
 
     /**
-     * array MogileFs::createHost(string domain, string host, string ip, int port)
-     * CREATE_HOST domain=%s&host=%s&ip=%s&port=%s
+     * Create new host
      *
      * @param string $host
      * @param string $ip
      * @param int $port
      *
      * @return int
-     * @throws \Exception
      */
-    public function createHost($host, $ip, $port) {
+    public function createHost($host, $ip, $port)
+    {
         return $this->doRequest(
             'CREATE_HOST',
             [
                 'domain' => $this->domain,
                 'host' => $host,
                 'ip' => $ip,
-                'port' => $port
+                'port' => $port,
             ]
         );
     }
 
     /**
-     * array MogileFs::updateHost(string $hostname, string $ip, int $port[, string $state = "alive"])
-     * UPDATE_HOST domain=%s&host=%s&ip=%s&port=%s&status=%s&update=1
+     * Update host
      *
      * @param string $hostname
      * @param string $ip
@@ -646,11 +690,12 @@ class Client {
      * @param string $status
      *
      * @return int
-     * @throws \Exception
+     * @throws InvalidArgumentException
      */
-    public function updateHost($hostname, $ip, $port, $status = 'alive') {
+    public function updateHost($hostname, $ip, $port, $status = 'alive')
+    {
         if (!in_array($status, ['alive', 'dead', 'down'])) {
-            throw new \InvalidArgumentException(get_class($this) . "::updateHost status must be on off: alive, dead, down");
+            throw new InvalidArgumentException(get_class($this) . "::updateHost status must be on off: alive, dead, down");
         }
 
         return $this->doRequest(
@@ -661,33 +706,32 @@ class Client {
                 'ip' => $ip,
                 'port' => $port,
                 'status' => $status,
-                'update' => 1
+                'update' => 1,
             ]
         );
     }
 
     /**
-     * bool MogileFs::deleteHost(string $hostname)
-     * DELETE_HOST domain=%s&host=%s
+     * Delete host
      *
      * @param string $hostname
      *
      * @return int
      * @throws \Exception
      */
-    public function deleteHost($hostname) {
+    public function deleteHost($hostname)
+    {
         return $this->doRequest(
             'DELETE_HOST',
             [
                 'domain' => $this->domain,
-                'host' => $hostname
+                'host' => $hostname,
             ]
         );
     }
 
     /**
-     * bool MogileFs::setWeight(string $hostname, string $device, string $weight)
-     * SET_WEIGHT domain=%s&host=%s&device=%s&weight=%s
+     * Set weight for host
      *
      * @param string $hostname
      * @param string $device
@@ -696,32 +740,34 @@ class Client {
      * @return int
      * @throws \Exception
      */
-    public function setWeight($hostname, $device, $weight) {
+    public function setWeight($hostname, $device, $weight)
+    {
         return $this->doRequest(
             'SET_WEIGHT',
             [
                 'domain' => $this->domain,
                 'host' => $hostname,
                 'device' => $device,
-                'weight' => $weight
+                'weight' => $weight,
             ]
         );
     }
 
     /**
-     * bool MogileFs::setState(string $hostname, string $device[, string $state = "alive"])
-     * SET_STATE domain=%s&host=%s&device=%s&state=%s
+     * Set state on host
      *
      * @param string $hostname
-     * @param string $devId
-     * @param string string $status
+     * @param int $devId
+     * @param string $status ("alive", "dead", "down")
      *
-     * @return int
+     * @return bool
+     * @throws InvalidArgumentException
      * @throws \Exception
      */
-    public function setState($hostname, $devId, $status = 'alive') {
+    public function setState($hostname, $devId, $status = 'alive')
+    {
         if (!in_array($status, ['alive', 'dead', 'down'])) {
-            throw new \InvalidArgumentException(get_class($this) . "::setState status must be on off: alive, dead, down");
+            throw new InvalidArgumentException(get_class($this) . "::setState status must be on off: alive, dead, down");
         }
 
         return $this->doRequest(
@@ -730,52 +776,55 @@ class Client {
                 'domain' => $this->domain,
                 'host' => $hostname,
                 'device' => $devId,
-                'status' => $status
+                'status' => $status,
             ]
         );
     }
 
     /**
-     * bool MogileFs::checker(string $status ("on" or "off"), string $level)
-     * CHECKER domain=%s&disable=%s&level=%s
+     * Start/stop checker on tracker
      *
-     * @param string $status
+     * @param string $status ("on" or "off")
      * @param string $level
      *
-     * @return int
+     * @return bool
      * @throws \Exception
      */
-    public function checker($status, $level) {
+    public function checker($status, $level)
+    {
         return $this->doRequest(
             'CHECKER',
             [
                 'domain' => $this->domain,
                 'disable' => $status,
-                'level' => $level
+                'level' => $level,
             ]
         );
     }
 
     /**
-     * void Mogilefs::setReadTimeout(float $readTimeout)
+     * Set read timeout
      *
      * @param int $readTimeout
      *
      * @return self
+     * @throws InvalidArgumentException
      */
-    public function setReadTimeout($readTimeout) {
+    public function setReadTimeout($readTimeout)
+    {
         if (is_int($readTimeout) || is_float($readTimeout)) {
             $this->read_timeout = $readTimeout;
 
             return $this;
         }
-        throw new \InvalidArgumentException("Read timeout must be an integer or float. readTimeout was:" . $readTimeout);
+        throw new InvalidArgumentException("Read timeout must be an integer or float. readTimeout was:" . $readTimeout);
     }
 
     /**
-     * float MogileFs::getReadTimeout()
+     * Get read timeout
      */
-    public function getReadTimeout() {
+    public function getReadTimeout()
+    {
         return $this->read_timeout;
     }
 }
