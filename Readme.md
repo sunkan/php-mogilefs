@@ -7,7 +7,7 @@ composer.json
 ```json
 {
     "require": {
-        "sunkan/php-mogilefs": "dev-master"
+        "sunkan/php-mogilefs": "1.*"
     }
 }
 ```
