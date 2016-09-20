@@ -3,6 +3,8 @@
 namespace MogileFs;
 
 use InvalidArgumentException;
+use Psr\Http\Message\StreamInterface;
+use Psr\Http\Message\UploadedFileInterface;
 use RuntimeException;
 use UnexpectedValueException;
 
@@ -170,7 +172,7 @@ class Client
     /**
      * Upload data to tracker
      *
-     * @param string $file
+     * @param string|StreamInterface|UploadedFileInterface $file
      * @param string $key
      * @param string $class
      * @param bool $use_file
@@ -184,7 +186,11 @@ class Client
             throw new InvalidArgumentException(get_class($this) . "::put key cannot be null");
         }
         if ($use_file) {
-            if (is_resource($file) && get_resource_type($file) == 'stream') {
+            if ($file instanceof UploadedFileInterface) {
+                $fh = $file->getStream()->detach();
+            } elseif ($file instanceof StreamInterface) {
+                $fh = $file->detach();
+            } elseif (is_resource($file) && get_resource_type($file) == 'stream') {
                 $fh = $file;
             } else {
                 $fh = fopen($file, 'r');
