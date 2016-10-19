@@ -188,8 +188,10 @@ class Client
         if ($use_file) {
             if ($file instanceof UploadedFileInterface) {
                 $fh = $file->getStream()->detach();
+                $length = $file->getSize();
             } elseif ($file instanceof StreamInterface) {
                 $fh = $file->detach();
+                $length = $file->getSize();
             } elseif (is_resource($file) && get_resource_type($file) == 'stream') {
                 $fh = $file;
             } else {
@@ -198,7 +200,9 @@ class Client
             if (!$fh) {
                 throw new RuntimeException(get_class($this) . "::put failed to open file");
             }
-            $length = filesize($file);
+            if (!$length) {
+                $length = filesize($file);
+            }
         } else {
             $fh = fopen('php://memory', 'rw');
             if ($fh === false) {
