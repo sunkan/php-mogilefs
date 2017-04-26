@@ -7,7 +7,7 @@ composer.json
 ```json
 {
     "require": {
-        "sunkan/php-mogilefs": "1.*"
+        "sunkan/php-mogilefs": "2.*"
     }
 }
 ```
@@ -15,40 +15,51 @@ composer.json
 ##Example
 
 ```php
-$client = new MogileFs\Client();
-
-$client->connect([
-  '127.0.0.1:7001'
+$connection = new MogileFs\Connection([
+    [
+        'host' => '127.0.0.1',
+        'port' => 7001
+    ]
 ]);
-//or
-$client->connect('127.0.0.1', 7001, 'example.com');
-
 
 //Domain methods
-$client->getDomains();
-
-$client->createDomain('example.com')
-$client->deleteDomain('example.com')
+$domainClient = new MogileFs\Clients\DomainClient($connection);
+$domains = $domainClient ->all();
+$domainClient->create('example.com');
+$domainClient->delete('example.com')
 
 //Class methods
-$client->createClass('example.com', 'assets', 3);
-$client->updateClass('example.com', 'assets', 3);
-$client->deleteClass('example.com', 'assets');
+
+$classClient = new MogileFs\Client\ClassClient($connection, 'example.com');
+//or
+$classClient = new MogileFs\Client\ClassClient($connection);
+$classClient->setDomain('example.com');
+
+$classClient->create('assets', 2);
+$classClient->update('assets', 3);
+$classClient->delete('assets');
 
 //File methods
-$client->setDomain('example.com');
 
-$paths = $client->get('test/key');
-$info = $client->fileInfo('test/key');
-$rs = $client->delete('test/key');
-$rs = $client->rename('test/key', 'test/new_key');
+$fileClient = new MogileFs\Client\FileClient($connection, 'example.com');
+//or
+$fileClient = new MogileFs\Client\FileClient($connection);
+$fileClient->setDomain('example.com');
 
-$data = 'hello world';
-$client->put($data, 'hello/world', 'assets', false);
+$paths = $fileClient->get('test/key');
+$info = $fileClient->info('test/key');
+$rs = $fileClient->delete('test/key');
+$rs = $fileClient->rename('test/key', 'test/new_key');
 
-$file = 'hello.txt';
-$client->put('./hello.txt', 'hello_world.txt', 'assets');
+//upload file from a psr-7 request
+$file = new MogileFs\File($request, 'assets');
+//upload file from file system
+$file = new MogileFs\File('./path/to/image.jpg', 'assets');
+//upload file from file handler
+$file = new MogileFs\File(fopen('world.txt', 'r'), 'assets');
+//upload text
+$file = new MogileFs\File($text, 'assets');
 
-$handler = fopen('world.txt', 'r');
-$client->put($handler, 'world_hello.txt', 'assets');
+$rs = $fileClient->upload('test/uploaded-file', $file);
+
 ```
