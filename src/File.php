@@ -43,10 +43,10 @@ class File
             rewind($fh);
             $length = strlen($this->payload);
         }
-        if (!$length && is_string($this->payload)) {
+        if (empty($length) && is_string($this->payload)) {
             $length = filesize($this->payload);
         }
-        if (!$fh) {
+        if (empty($fh)) {
             throw new RuntimeException(get_class($this) . "::getStream() failed to open file");
         }
 
