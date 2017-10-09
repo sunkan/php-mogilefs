@@ -23,7 +23,7 @@ $connection = new MogileFs\Connection([
 ]);
 
 //Domain methods
-$domainClient = new MogileFs\Clients\DomainClient($connection);
+$domainClient = new MogileFs\Client\DomainClient($connection);
 $domains = $domainClient ->all();
 $domainClient->create('example.com');
 $domainClient->delete('example.com')
