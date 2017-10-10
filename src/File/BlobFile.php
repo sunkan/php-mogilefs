@@ -35,7 +35,6 @@ class BlobFile implements FileInterface
         fwrite($fh, $this->payload);
         rewind($fh);
         $length = strlen($this->payload);
-        dump($length);
         return [$fh, $length];
     }
 }
