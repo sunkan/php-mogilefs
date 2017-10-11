@@ -2,11 +2,12 @@
 
 namespace MogileFs;
 
+use MogileFs\File\FileInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use RuntimeException;
 
-class File
+class File implements FileInterface
 {
     private $payload;
     private $class;
