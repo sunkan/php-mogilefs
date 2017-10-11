@@ -4,7 +4,7 @@ namespace MogileFs\Client;
 
 use InvalidArgumentException;
 use MogileFs\Connection;
-use MogileFs\File;
+use MogileFs\File\FileInterface;
 use RuntimeException;
 
 class FileClient
@@ -18,12 +18,22 @@ class FileClient
         $this->domain = $domain;
     }
 
+    /**
+     * @param $domain
+     * @return $this
+     */
     public function setDomain($domain)
     {
         $this->domain = $domain;
+        return $this;
     }
 
-    public function upload($key, File $file)
+    /**
+     * @param $key
+     * @param FileInterface $file
+     * @return bool
+     */
+    public function upload($key, FileInterface $file)
     {
         //Retrive url to upload to
         $location = $this->connection->request('CREATE_OPEN', [
@@ -173,7 +183,7 @@ class FileClient
             'domain' => $this->domain,
             'prefix' => $prefix,
             'after' => $suffix,
-            'limit' => (int) $limit,
+            'limit' => (int)$limit,
         ]);
 
         return $result;
