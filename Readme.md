@@ -1,6 +1,6 @@
-#Php MogileFs client
+# Php MogileFs client
 
-##Install with composer:
+## Install with composer:
 
 composer.json
 
@@ -12,9 +12,10 @@ composer.json
 }
 ```
 
-##Example
+## Example
 
 ```php
+<?php
 $connection = new MogileFs\Connection([
     [
         'host' => '127.0.0.1',

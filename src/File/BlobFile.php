@@ -4,29 +4,14 @@ namespace MogileFs\File;
 
 use RuntimeException;
 
-class BlobFile implements FileInterface
+class BlobFile extends ResourceFile
 {
-    private $payload;
-    private $class;
-
+    /**
+     * BlobFile constructor.
+     * @param string    $payload
+     * @param string    $class
+     */
     public function __construct($payload, $class)
-    {
-        $this->payload = $payload;
-        $this->class = $class;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getClass()
-    {
-        return $this->class;
-    }
-
-    /**
-     * @return array
-     */
-    public function getStream()
     {
         $fh = fopen('php://memory', 'rw');
         if ($fh === false) {
@@ -34,7 +19,8 @@ class BlobFile implements FileInterface
         }
         fwrite($fh, $this->payload);
         rewind($fh);
-        $length = strlen($this->payload);
-        return [$fh, $length];
+        $this->length = strlen($this->payload);
+
+        parent::__construct($fh, $class);
     }
 }
