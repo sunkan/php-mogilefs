@@ -10,7 +10,7 @@ interface FileInterface
     public function getClass();
 
     /**
-     * @return array
+     * @return array (resource, int)
      */
     public function getStream();
 }
