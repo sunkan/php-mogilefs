@@ -17,9 +17,9 @@ class BlobFile extends ResourceFile
         if ($fh === false) {
             throw new RuntimeException(get_class($this) . "::getStream() failed to open memory stream");
         }
-        fwrite($fh, $this->payload);
+        fwrite($fh, $payload);
         rewind($fh);
-        $this->length = strlen($this->payload);
+        $this->length = strlen($payload);
 
         parent::__construct($fh, $class);
     }
