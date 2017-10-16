@@ -28,7 +28,7 @@ class ResourceFile implements FileInterface
      */
     public function __construct($payload, $class)
     {
-        if (!(is_resource($this->payload) && get_resource_type($this->payload) == 'stream')) {
+        if (!(is_resource($payload) && get_resource_type($payload) == 'stream')) {
             throw new Exception("Invalid payload. Should be stream or file handle");
         }
 
