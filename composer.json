@@ -27,7 +27,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Nats\\tests\\Unit\\": "test/"
+            "MogileFs\\": "tests/"
         }
     }
 }

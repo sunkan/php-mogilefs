@@ -3,59 +3,24 @@
 namespace MogileFs\Client;
 
 use MogileFs\Connection;
-use PHPUnit\Framework\TestCase;
 
-class DomainClientTest extends TestCase
+class DomainClientTest extends AbstractClientTest
 {
-
-    private static $tracker = [
-        [
-            'host' => '127.0.0.1',
-            'port' => 7001
-        ]
-    ];
-
     private static $domains = [
         'test-domain-client-1',
         'test-domain-client-2'
     ];
 
-    private $domain;
-
     public function setUp()
     {
-        $connection = $this->getConnection();
-
-        $domainClient = new DomainClient($connection);
-        try {
-            $domainClient->delete(self::$domains[0]);
-            $domainClient->delete(self::$domains[1]);
-        } catch (\Exception $e) {
-        }
-
-        $this->domain = self::$domains[0];
-    }
-    public static function tearDownAfterClass()
-    {
-        $domainClient = new DomainClient(new Connection(self::$tracker));
-        try {
-            $domainClient->delete(self::$domains[0]);
-            $domainClient->delete(self::$domains[1]);
-        } catch (\Exception $e) {
-        }
-    }
-
-
-    protected function getConnection()
-    {
-        return new Connection(self::$tracker);
+        self::reset();
     }
 
     public function testCreateDomain()
     {
         $domainClient = new DomainClient($this->getConnection());
-        $data = $domainClient->create($this->domain);
-        $this->assertSame($this->domain, $data['domain']);
+        $data = $domainClient->create(self::$domains[0]);
+        $this->assertSame(self::$domains[0], $data['domain']);
     }
 
     public function testCreateDuplicateDomain()
@@ -63,17 +28,17 @@ class DomainClientTest extends TestCase
         $this->expectExceptionMessage('MogileFs\Connection::doRequest() ERR domain_exists That domain already exists');
 
         $domainClient = new DomainClient($this->getConnection());
-        $domainClient->create($this->domain);
-        $domainClient->create($this->domain);
+        $domainClient->create(self::$domains[0]);
+        $domainClient->create(self::$domains[0]);
     }
 
     public function testDeleteDomain()
     {
         $domainClient = new DomainClient($this->getConnection());
-        $domainClient->create($this->domain);
+        $domainClient->create(self::$domains[0]);
 
-        $data = $domainClient->delete($this->domain);
-        $this->assertSame($this->domain, $data['domain']);
+        $data = $domainClient->delete(self::$domains[0]);
+        $this->assertSame(self::$domains[0], $data['domain']);
     }
 
     public function testDeleteNonExistingDomain()
@@ -81,10 +46,10 @@ class DomainClientTest extends TestCase
         $this->expectExceptionMessage('MogileFs\Connection::doRequest() ERR domain_not_found Domain not found');
 
         $domainClient = new DomainClient($this->getConnection());
-        $domainClient->create($this->domain);
+        $domainClient->create(self::$domains[0]);
 
-        $domainClient->delete($this->domain);
-        $domainClient->delete($this->domain);
+        $domainClient->delete(self::$domains[0]);
+        $domainClient->delete(self::$domains[0]);
     }
 
     public function testListDomains()

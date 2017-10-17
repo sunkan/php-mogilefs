@@ -2,80 +2,39 @@
 
 namespace MogileFs\Client;
 
-use MogileFs\Connection;
-use PHPUnit\Framework\TestCase;
-
-class ClassClientTest extends TestCase
+class ClassClientTest extends AbstractClientTest
 {
-    private static $tracker = [
-        [
-            'host' => '127.0.0.1',
-            'port' => 7001
-        ]
-    ];
     private static $domains = [
         'test-domain',
         'test-domain-2'
     ];
-    private $domain;
-    private $domain2;
 
-    private static function resetMogile($teardown = false)
+    public function setUp()
     {
-        $connection = new Connection(self::$tracker);
-
-        $classClient = new ClassClient($connection, 'default');
-        $domainClient = new DomainClient($connection);
+        self::reset();
+        $domainClient = new DomainClient($this->getConnection());
         foreach (self::$domains as $domain) {
             try {
-                $classClient->setDomain($domain);
-                $classClient->delete('test-images');
+                $domainClient->create($domain);
             } catch (\Exception $e) {
-            }
-            try {
-                $domainClient->delete($domain);
-            } catch (\Exception $e) {
-            }
-            if (!$teardown) {
-                try {
-                    $domainClient->create($domain);
-                } catch (\Exception $e) {
-                }
             }
         }
     }
 
-    public function setUp()
-    {
-        self::resetMogile();
-        $this->domain = self::$domains[0];
-        $this->domain2 = self::$domains[1];
-    }
-
-    public static function tearDownAfterClass()
-    {
-        self::resetMogile(true);
-    }
-
-    protected function getConnection()
-    {
-        return new Connection(self::$tracker);
-    }
-
     public function testCreateClass()
     {
-        $classClient = new ClassClient($this->getConnection(), $this->domain);
+        $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
         $data = $classClient->create('test-images', 2);
-        $this->assertEquals($this->domain, $data['domain']);
+        $this->assertEquals(self::$domains[0], $data['domain']);
         $this->assertEquals('test-images', $data['class']);
         $this->assertEquals(2, $data['mindevcount']);
     }
 
     public function testDuplicateCreate()
     {
-        $classClient = new ClassClient($this->getConnection(), $this->domain);
+        $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
         $data = $classClient->create('test-images', 2);
-        $this->assertEquals($this->domain, $data['domain']);
+        $this->assertEquals(self::$domains[0], $data['domain']);
         $this->assertEquals('test-images', $data['class']);
         $this->assertEquals(2, $data['mindevcount']);
 
@@ -87,26 +46,25 @@ class ClassClientTest extends TestCase
 
     public function testChangeDomain()
     {
-        $classClient = new ClassClient($this->getConnection(), $this->domain);
+        $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
         $data = $classClient->create('test-images', 2);
-        $this->assertEquals($this->domain, $data['domain']);
+        $this->assertEquals(self::$domains[0], $data['domain']);
         $this->assertEquals('test-images', $data['class']);
         $this->assertEquals(2, $data['mindevcount']);
 
-        $testDomain = 'test-domain-2';
-        $classClient->setDomain($testDomain);
+        $classClient->setDomain(self::$domains[1]);
 
         $data = $classClient->create('test-images', 3);
-        $this->assertEquals($testDomain, $data['domain']);
+        $this->assertEquals(self::$domains[1], $data['domain']);
         $this->assertEquals('test-images', $data['class']);
         $this->assertEquals(3, $data['mindevcount']);
     }
 
     public function testUpdateClass()
     {
-        $classClient = new ClassClient($this->getConnection(), $this->domain);
+        $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
         $data = $classClient->create('test-images', 2);
-        $this->assertEquals($this->domain, $data['domain']);
+        $this->assertEquals(self::$domains[0], $data['domain']);
         $this->assertEquals('test-images', $data['class']);
         $this->assertEquals(2, $data['mindevcount']);
 
@@ -116,18 +74,18 @@ class ClassClientTest extends TestCase
 
     public function testDeleteClass()
     {
-        $classClient = new ClassClient($this->getConnection(), $this->domain);
+        $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
         $data = $classClient->create('test-images', 2);
         $this->assertInternalType('array', $data);
 
         $data = $classClient->delete('test-images');
-        $this->assertEquals($this->domain, $data['domain']);
+        $this->assertEquals(self::$domains[0], $data['domain']);
         $this->assertEquals('test-images', $data['class']);
     }
 
     public function testInvalidMinVCount()
     {
-        $classClient = new ClassClient($this->getConnection(), $this->domain);
+        $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
         try {
             $classClient->create('test-images', 'test');
             $this->fail();
