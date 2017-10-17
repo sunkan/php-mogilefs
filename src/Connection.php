@@ -17,6 +17,8 @@ class Connection
      */
     const ERROR = 'ERR';
 
+    const DEFAULT_PORT = 7001;
+
     private $socket;
 
     private $options = [
@@ -28,15 +30,17 @@ class Connection
     public function __construct(array $trackers, array $options = [])
     {
         foreach ($trackers as $tracker) {
-            $this->addTracker($tracker['host'], $tracker['port']);
+            $this->addTracker($tracker['host'], $tracker['port'] ?? self::DEFAULT_PORT);
         }
 
-        $this->options = $options;
+        $this->options = $options + $this->options ;
     }
 
-    public function addTracker($host, $port = 7001)
+    public function addTracker($host, $port = self::DEFAULT_PORT)
     {
         $this->trackers[] = $host . ':' . $port;
+
+        return $this;
     }
 
     public function connect()
@@ -47,13 +51,16 @@ class Connection
 
         foreach ($this->trackers as $host) {
             $parts = parse_url($host);
-            if (!isset($parts['port'])) {
-                $parts['port'] = 7001;
-            }
 
             $errno = null;
             $errstr = null;
-            $this->socket = fsockopen($parts['host'], $parts['port'], $errno, $errstr, $this->options['request_timeout']);
+            $this->socket = @fsockopen(
+                $parts['host'],
+                $parts['port'],
+                $errno,
+                $errstr,
+                $this->options['request_timeout']
+            );
             if ($this->socket) {
                 break;
             }
