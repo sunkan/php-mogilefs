@@ -3,4 +3,5 @@
 namespace MogileFs;
 
 class Exception extends \RuntimeException
-{}
+{
+}

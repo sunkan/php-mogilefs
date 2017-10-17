@@ -20,9 +20,9 @@ class Psr7File extends ResourceFile
         } elseif ($payload instanceof StreamInterface) {
             $fh = $payload->detach();
         } else {
-            throw new Exception("Invalid payload argument. Must be an instance of UploadFileInterface or StreamInterface");
+            throw new Exception("Invalid payload argument. Must be instance of UploadFileInterface or StreamInterface");
         }
-        $this->length = $this->payload->getSize();
+        $this->length = $payload->getSize();
 
         parent::__construct($fh, $class);
     }

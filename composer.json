@@ -13,9 +13,21 @@
     "require": {
         "psr/http-message": "~1.0"
     },
+    "require-dev": {
+        "phpunit/phpunit": "6.*",
+        "mockery/mockery": "dev-master",
+        "satooshi/php-coveralls": "dev-master",
+        "leanphp/phpspec-code-coverage": "^3.2@dev",
+        "fzaninotto/faker": "dev-master"
+    },
     "autoload": {
         "psr-4": {
             "MogileFs\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Nats\\tests\\Unit\\": "test/"
         }
     }
 }
