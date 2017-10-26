@@ -26,23 +26,45 @@ class Connection
     ];
 
     protected $trackers = [];
+    protected $response;
 
     public function __construct(array $trackers, array $options = [])
     {
         foreach ($trackers as $tracker) {
-            $this->addTracker($tracker['host'], $tracker['port'] ?? self::DEFAULT_PORT);
+            $this->addTracker($tracker);
         }
 
         $this->options = $options + $this->options ;
     }
 
+    /**
+     * @param mixed $host
+     * @param int $port
+     * @return self
+     */
     public function addTracker($host, $port = self::DEFAULT_PORT)
     {
-        $this->trackers[] = $host . ':' . $port;
+        if (is_array($host)) {
+            $port = $host['port'] ?? self::DEFAULT_PORT;
+            $tracker = $host['host'] . ':' .$port;
+        } elseif (strpos($host, ':')) {
+            $tracker = $host;
+        } else {
+            $tracker = $host . ':' . $port;
+        }
+        $this->trackers[] = $tracker;
 
         return $this;
     }
 
+    public function getResponse(): ?Response
+    {
+        return $this->response;
+    }
+
+    /**
+     * @return resource
+     */
     public function connect()
     {
         if ($this->socket && is_resource($this->socket) && !feof($this->socket)) {
@@ -77,7 +99,7 @@ class Connection
      *
      * @return bool
      */
-    public function isConnected()
+    public function isConnected(): bool
     {
         return $this->socket && is_resource($this->socket) && !feof($this->socket);
     }
@@ -92,7 +114,7 @@ class Connection
      * @throws UnexpectedValueException
      * @throws Exception
      */
-    public function request($cmd, $args = [])
+    public function request($cmd, $args = []): Response
     {
         $params = '';
         if (count($args)) {
@@ -101,9 +123,6 @@ class Connection
             }
         }
         $socket = $this->connect();
-        if (!$this->isConnected()) {
-            throw new RuntimeException(get_class($this) . '::doRequest() failed to obtain connection');
-        }
 
         $result = fwrite($socket, $cmd . $params . "\n");
         if ($result === false) {
@@ -114,24 +133,8 @@ class Connection
             throw new UnexpectedValueException(get_class($this) . "::doRequest() read failed");
         }
 
-        $words = explode(' ', $line);
-        if ($words[0] == self::SUCCESS) {
-            parse_str(trim($words[1]), $result);
-        } else {
-            if (!isset($words[1])) {
-                $words[1] = null;
-            }
-            switch ($words[1]) {
-                case 'unknown_key':
-                    throw new Exception(get_class($this) . "::doRequest() unknown_key {$args['key']}");
-                case 'empty_file':
-                    throw new Exception(get_class($this) . "::doRequest() empty_file {$args['key']}");
-                default:
-                    throw new Exception(get_class($this) . "::doRequest() " . trim(urldecode($line)));
-            }
-        }
-
-        return $result;
+        $this->response = new Response($line);
+        return $this->response;
     }
 
     /**
@@ -139,7 +142,7 @@ class Connection
      *
      * @return bool
      */
-    public function close()
+    public function close(): bool
     {
         if ($this->isConnected()) {
             return fclose($this->socket);
@@ -148,7 +151,7 @@ class Connection
         return true;
     }
 
-    public function getRequestTimeout()
+    public function getRequestTimeout(): int
     {
         return $this->options['request_timeout'];
     }

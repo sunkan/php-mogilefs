@@ -2,9 +2,15 @@
 
 namespace MogileFs\Client;
 
-use InvalidArgumentException;
+use MogileFs\Collection;
 use MogileFs\Connection;
-use MogileFs\File\FileInterface;
+use MogileFs\Exception;
+use MogileFs\File\FileInterface as UploadFileInterface;
+use MogileFs\Object\FileInterface;
+use MogileFs\Object\File;
+use MogileFs\Object\Path;
+use MogileFs\Object\PathInterface;
+use MogileFs\Response;
 use RuntimeException;
 
 class FileClient
@@ -20,9 +26,9 @@ class FileClient
 
     /**
      * @param $domain
-     * @return $this
+     * @return self
      */
-    public function setDomain($domain)
+    public function setDomain(string $domain)
     {
         $this->domain = $domain;
         return $this;
@@ -30,17 +36,22 @@ class FileClient
 
     /**
      * @param $key
-     * @param FileInterface $file
-     * @return bool
+     * @param UploadFileInterface $file
+     * @return Response
      */
-    public function upload($key, FileInterface $file)
+    public function upload(string $key, UploadFileInterface $file): Response
     {
         //Retrive url to upload to
-        $location = $this->connection->request('CREATE_OPEN', [
+        $locationResponse = $this->connection->request('CREATE_OPEN', [
             'key' => $key,
             'domain' => $this->domain,
             'class' => $file->getClass(),
         ]);
+        if ($locationResponse->isError()) {
+            return $locationResponse;
+        }
+
+        $location = $locationResponse->getData();
 
         list($fileHandler, $length) = $file->getStream();
 
@@ -63,15 +74,13 @@ class FileClient
         }
         curl_close($ch);
 
-        $this->connection->request('CREATE_CLOSE', [
+        return $this->connection->request('CREATE_CLOSE', [
             'key' => $key,
             'domain' => $this->domain,
             'devid' => $location['devid'],
             'fid' => $location['fid'],
             'path' => urldecode($location['path']),
         ]);
-
-        return true;
     }
 
     /**
@@ -79,20 +88,29 @@ class FileClient
      *
      * @param string $key
      *
-     * @return array
-     * @throws InvalidArgumentException
+     * @return FileInterface
+     * @throws Exception
      */
-    public function info($key)
+    public function info(string $key): FileInterface
     {
-        if ($key === null) {
-            throw new InvalidArgumentException(get_class($this) . "::info() key cannot be null");
-        }
-        $result = $this->connection->request('FILE_INFO', [
+        $response = $this->connection->request('FILE_INFO', [
             'domain' => $this->domain,
             'key' => $key,
         ]);
 
-        return $result;
+        if ($response->isError()) {
+            throw Exception::error($response);
+        }
+
+        $data = $response->getData();
+        return new File(
+            $data['fid'],
+            $data['key'],
+            $data['class'],
+            $data['domain'],
+            $data['devcount'],
+            $data['length']
+        );
     }
 
     /**
@@ -101,22 +119,28 @@ class FileClient
      * @param string $key
      * @param int $pathcount
      *
-     * @return array
-     * @throws InvalidArgumentException
+     * @return PathInterface
+     * @throws Exception
      */
-    public function get($key, $pathcount = 2)
+    public function get(string $key, int $pathcount = 2): PathInterface
     {
-        if ($key === null) {
-            throw new InvalidArgumentException(get_class($this) . "::get() key cannot be null");
-        }
-
-        $result = $this->connection->request('GET_PATHS', [
+        $response = $this->connection->request('GET_PATHS', [
             'key' => $key,
             'domain' => $this->domain,
             'pathcount' => $pathcount,
         ]);
 
-        return $result;
+        if ($response->isError()) {
+            throw Exception::error($response);
+        }
+
+        $data = $response->getData();
+        $paths = [];
+        for ($i = 1; $i <= $data['paths']; $i++) {
+            $paths[] = $data['path'.$i];
+        }
+
+        return new Path($paths, (int)$data['paths']);
     }
 
     /**
@@ -124,21 +148,14 @@ class FileClient
      *
      * @param string $key
      *
-     * @return bool
-     * @throws InvalidArgumentException
+     * @return Response
      */
-    public function delete($key)
+    public function delete(string $key): Response
     {
-        if ($key === null) {
-            throw new InvalidArgumentException(get_class($this) . "::delete() key cannot be null");
-        }
-
-        $this->connection->request('DELETE', [
+        return $this->connection->request('DELETE', [
             'domain' => $this->domain,
             'key' => $key,
         ]);
-
-        return true;
     }
 
     /**
@@ -147,25 +164,15 @@ class FileClient
      * @param string $fromKey
      * @param string $toKey
      *
-     * @return bool
-     * @throws InvalidArgumentException
+     * @return Response
      */
-    public function rename($fromKey, $toKey)
+    public function rename(string $fromKey, string $toKey): Response
     {
-        if ($fromKey === null) {
-            throw new InvalidArgumentException(get_class($this) . "::rename() fromKey cannot be null");
-        }
-        if ($toKey === null) {
-            throw new InvalidArgumentException(get_class($this) . "::rename() toKey cannot be null");
-        }
-
-        $this->connection->request('RENAME', [
+        return $this->connection->request('RENAME', [
             'domain' => $this->domain,
             'from_key' => $fromKey,
             'to_key' => $toKey,
         ]);
-
-        return true;
     }
 
     /**
@@ -175,18 +182,27 @@ class FileClient
      * @param string $suffix
      * @param int $limit
      *
-     * @return array
+     * @return Collection
      */
-    public function listKeys($prefix, $suffix, $limit)
+    public function listKeys($prefix, $suffix, $limit): ?Collection
     {
-        $result = $this->connection->request('LIST_KEYS', [
+        $response = $this->connection->request('LIST_KEYS', [
             'domain' => $this->domain,
             'prefix' => $prefix,
             'after' => $suffix,
-            'limit' => (int)$limit,
+            'limit' => (int) $limit,
         ]);
 
-        return $result;
+        if ($response->isSuccess()) {
+            $collection = new Collection();
+            $result = $response->getData();
+            for ($i = (int) $result['key_count']; $i > 0; $i--) {
+                $collection[] = $result['key_' . $i];
+            }
+            return $collection;
+        }
+
+        return null;
     }
 
     /**
@@ -194,19 +210,11 @@ class FileClient
      *
      * @param int $from
      * @param int $to
-     *
-     * @return array
-     * @throws InvalidArgumentException
+     * @return Collection
      */
-    public function listFids($from, $to)
+    public function listFids(int $from, int $to): ?Collection
     {
-        if (!is_int($from)) {
-            throw new InvalidArgumentException(get_class($this) . "::listFids from must be an integer");
-        }
-        if (!is_int($to)) {
-            throw new InvalidArgumentException(get_class($this) . "::listFids to must be an integer");
-        }
-        $result = $this->connection->request(
+        $response = $this->connection->request(
             'LIST_FIDS',
             [
                 'domain' => $this->domain,
@@ -214,7 +222,21 @@ class FileClient
                 'to' => $to,
             ]
         );
-
-        return $result;
+        if ($response->isError()) {
+            return Exception::error($response);
+        }
+        $collection = new Collection();
+        $result = $response->getData();
+        for ($i = (int) $result['fid_count']; $i > 0; $i--) {
+            $collection[] = new File(
+                $result['fid_' . $i . '_fid'],
+                $result['fid_' . $i . '_key'],
+                $result['fid_' . $i . '_class'],
+                $result['fid_' . $i . '_domain'],
+                $result['fid_' . $i . '_devcount'],
+                $result['fid_' . $i . '_length']
+            );
+        }
+        return $collection;
     }
 }

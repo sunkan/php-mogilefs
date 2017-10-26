@@ -2,8 +2,12 @@
 
 namespace MogileFs\Client;
 
-use MogileFs\Connection;
+use MogileFs\Collection;
+use MogileFs\Exception;
 use MogileFs\File\BlobFile;
+use MogileFs\Object\FileInterface;
+use MogileFs\Object\PathInterface;
+use MogileFs\Response;
 
 class FileClientTest extends AbstractClientTest
 {
@@ -32,12 +36,14 @@ class FileClientTest extends AbstractClientTest
         $fileClient = new FileClient($this->getConnection(), self::$domains[0]);
         $file = new BlobFile('Test content', 'images');
 
-        $rs = $fileClient->upload($key, $file);
-        $this->assertTrue($rs);
+        $response = $fileClient->upload($key, $file);
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertTrue($response->isSuccess());
 
-        $paths = $fileClient->get($key);
-        $this->assertTrue(isset($paths['path1']));
-        $this->assertGreaterThanOrEqual(1, $paths['paths']);
+        $path = $fileClient->get($key);
+        $this->assertInstanceOf(PathInterface::class, $path);
+
+        $this->assertGreaterThanOrEqual(1, $path->getCount());
     }
 
     public function testGetInfoAboutKey()
@@ -48,32 +54,17 @@ class FileClientTest extends AbstractClientTest
         $fileClient = new FileClient($this->getConnection(), self::$domains[0]);
         $file = new BlobFile($content, 'images');
 
-        $rs = $fileClient->upload($key, $file);
-        $this->assertTrue($rs);
+        $response = $fileClient->upload($key, $file);
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertTrue($response->isSuccess());
 
-        $info = $fileClient->info($key);
-        $this->assertInternalType('array', $info);
-        $this->assertEquals($key, $info['key']);
-        $this->assertEquals(strlen($content), $info['length']);
-        $this->assertEquals('images', $info['class']);
-        $this->assertEquals(self::$domains[0], $info['domain']);
-        $this->assertGreaterThanOrEqual(1, $info['devcount']);
-    }
-
-    public function testInvalidArgumentsForGetKey()
-    {
-        $this->expectExceptionMessage('MogileFs\Client\FileClient::get() key cannot be null');
-
-        $fileClient = new FileClient($this->getConnection(), self::$domains[0]);
-        $fileClient->get(null);
-    }
-
-    public function testInvalidArgumentsForInfo()
-    {
-        $this->expectExceptionMessage('MogileFs\Client\FileClient::info() key cannot be null');
-
-        $fileClient = new FileClient($this->getConnection(), self::$domains[0]);
-        $fileClient->info(null);
+        $file = $fileClient->info($key);
+        $this->assertInstanceOf(FileInterface::class, $file);
+        $this->assertEquals($key, $file->getKey());
+        $this->assertEquals(strlen($content), $file->getSize());
+        $this->assertEquals('images', $file->getFileClass());
+        $this->assertEquals(self::$domains[0], $file->getDomain());
+        $this->assertGreaterThanOrEqual(1, $file->getFileCount());
     }
 
     public function testDeleteFile()
@@ -84,18 +75,9 @@ class FileClientTest extends AbstractClientTest
         $fileClient = new FileClient($this->getConnection(), self::$domains[0]);
         $file = new BlobFile($content, 'images');
 
-        $rs = $fileClient->upload($key, $file);
-        $this->assertTrue($rs);
-
-        $this->assertTrue($fileClient->delete($key));
-    }
-
-    public function testInvalidArgumentsForDelete()
-    {
-        $this->expectExceptionMessage('MogileFs\Client\FileClient::delete() key cannot be null');
-
-        $fileClient = new FileClient($this->getConnection(), self::$domains[0]);
-        $fileClient->delete(null);
+        $response = $fileClient->upload($key, $file);
+        $this->assertTrue($response->isSuccess());
+        $this->assertTrue($fileClient->delete($key)->isSuccess());
     }
 
     public function testRenameFile()
@@ -107,38 +89,28 @@ class FileClientTest extends AbstractClientTest
         $fileClient = new FileClient($this->getConnection(), self::$domains[0]);
         $file = new BlobFile($content, 'images');
 
-        $rs = $fileClient->upload($key, $file);
-        $this->assertTrue($rs);
+        $uploadResponse = $fileClient->upload($key, $file);
+        $this->assertTrue($uploadResponse->isSuccess());
 
-        $this->assertTrue($fileClient->rename($key, $renameKey));
+        $renameResponse = $fileClient->rename($key, $renameKey);
 
-        $paths = $fileClient->get($renameKey);
-        $this->assertTrue(isset($paths['path1']));
-        $this->assertGreaterThanOrEqual(1, $paths['paths']);
+        $this->assertTrue($renameResponse->isSuccess());
+
+        $path = $fileClient->get($renameKey);
+        $this->assertInstanceOf(PathInterface::class, $path);
+        $this->assertGreaterThanOrEqual(1, $path->getCount());
     }
 
     public function testFindUnkownKeyException()
     {
-        $this->expectExceptionMessage('MogileFs\Connection::doRequest() unknown_key test/unkown-key');
-
-        $fileClient = new FileClient($this->getConnection(), self::$domains[0]);
-        $fileClient->get('test/unkown-key');
-    }
-
-    public function testInvalidFromKey()
-    {
-        $this->expectExceptionMessage('MogileFs\Client\FileClient::rename() fromKey cannot be null');
-
-        $fileClient = new FileClient($this->getConnection(), self::$domains[0]);
-        $fileClient->rename(null, 'test/to-key');
-    }
-
-    public function testInvalidToKey()
-    {
-        $this->expectExceptionMessage('MogileFs\Client\FileClient::rename() toKey cannot be null');
-
-        $fileClient = new FileClient($this->getConnection(), self::$domains[0]);
-        $fileClient->rename('test/from-key', null);
+        try {
+            $fileClient = new FileClient($this->getConnection(), self::$domains[0]);
+            $fileClient->get('test/unkown-key');
+        } catch (Exception $e) {
+            $this->assertInstanceOf(Response::class, $e->getResponse());
+            $this->assertTrue($e->getResponse()->isError());
+            $this->assertEquals('unknown_key', $e->getMessage());
+        }
     }
 
     public function testListFids()
@@ -151,31 +123,18 @@ class FileClientTest extends AbstractClientTest
             $fileClient->upload('test/list-key-'.$i, $file);
         }
 
-        $rs = $fileClient->listFids(0, 0);
+        $collection = $fileClient->listFids(0, 0);
+        $this->assertInstanceOf(Collection::class, $collection);
+        $this->assertCount(3, $collection);
 
-        $this->assertInternalType('array', $rs);
-
-        for ($i = (int) $rs['fid_count']; $i > 0; $i--) {
-            $this->assertGreaterThanOrEqual(1, $rs['fid_'.$i.'_devcount']);
-            $this->assertEquals(self::$domains[0], $rs['fid_'.$i.'_domain']);
-            $this->assertRegExp('/test\/list\-key\-\d/', $rs['fid_'.$i.'_key']);
-            $this->assertEquals('images', $rs['fid_'.$i.'_class']);
-            $this->assertEquals(strlen($content)+2, $rs['fid_'.$i.'_length']);
-        }
-    }
-    public function testInvalidFidFromKey()
-    {
-        $this->expectExceptionMessage('MogileFs\Client\FileClient::listFids from must be an integer');
-
-        $fileClient = new FileClient($this->getConnection(), self::$domains[0]);
-        $fileClient->listFids(null, 0);
-    }
-
-    public function testInvalidFidToKey()
-    {
-        $this->expectExceptionMessage('MogileFs\Client\FileClient::listFids to must be an integer');
-
-        $fileClient = new FileClient($this->getConnection(), self::$domains[0]);
-        $fileClient->listFids(0, null);
+        /** @var FileInterface $file */
+        $file = $collection[0];
+        $this->assertInstanceOf(FileInterface::class, $file);
+        $this->assertGreaterThanOrEqual(1, $file->getFid());
+        $this->assertGreaterThanOrEqual(1, $file->getFileCount());
+        $this->assertEquals('images', $file->getFileClass());
+        $this->assertEquals(self::$domains[0], $file->getDomain());
+        $this->assertRegExp('/test\/list\-key\-\d/', $file->getKey());
+        $this->assertEquals(strlen($content) + 2, $file->getSize());
     }
 }
