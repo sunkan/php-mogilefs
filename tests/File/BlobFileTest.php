@@ -19,10 +19,4 @@ class BlobFileTest extends TestCase
         $this->assertInternalType('resource', $resource);
         $this->assertEquals(strlen($content), $size);
     }
-
-    public function testInvalidContent()
-    {
-        $this->markTestSkipped();
-        // don't know how to fail this file type
-    }
 }

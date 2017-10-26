@@ -3,6 +3,7 @@
 namespace MogileFs\Client;
 
 use MogileFs\Connection;
+use MogileFs\Object\ClassInterface;
 use PHPUnit\Framework\TestCase;
 
 abstract class AbstractClientTest extends TestCase
@@ -31,26 +32,27 @@ abstract class AbstractClientTest extends TestCase
             return;
         }
         foreach ($domains as $domain) {
-            $fileClient->setDomain($domain['name']);
+            $fileClient->setDomain($domain->getDomain());
             try {
-                $fileInfo = $fileClient->listKeys('', '', 1000);
-                if ($fileInfo['key_count'] > 0) {
-                    for ($i = (int) $fileInfo['key_count']; $i > 0; $i--) {
-                        $fileClient->delete($fileInfo['key_'.$i]);
+                $keys = $fileClient->listKeys('', '', 1000);
+                if (count($keys)) {
+                    foreach ($keys as $key) {
+                        $fileClient->delete($key);
                     }
                 }
             } catch (\Exception $e) {
             }
 
-            $classClient->setDomain($domain['name']);
-            foreach ($domain['classes'] as $class => $count) {
+            $classClient->setDomain($domain->getDomain());
+            /** @var ClassInterface $classInfo */
+            foreach ($domain->getClasses() as $classInfo) {
                 try {
-                    $classClient->delete($class);
+                    $classClient->delete($classInfo->getName());
                 } catch (\Exception $e) {
                 }
             }
             try {
-                $domainClient->delete($domain['name']);
+                $domainClient->delete($domain->getDomain());
             } catch (\Exception $e) {
             }
         }

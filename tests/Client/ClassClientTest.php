@@ -2,6 +2,10 @@
 
 namespace MogileFs\Client;
 
+use MogileFs\Exception;
+use MogileFs\Object\ClassInterface;
+use MogileFs\Response;
+
 class ClassClientTest extends AbstractClientTest
 {
     private static $domains = [
@@ -24,82 +28,66 @@ class ClassClientTest extends AbstractClientTest
     public function testCreateClass()
     {
         $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
-        $data = $classClient->create('test-images', 2);
-        $this->assertEquals(self::$domains[0], $data['domain']);
-        $this->assertEquals('test-images', $data['class']);
-        $this->assertEquals(2, $data['mindevcount']);
+        $class = $classClient->create('test-images', 2);
+        $this->assertInstanceOf(ClassInterface::class, $class);
+        $this->assertEquals(self::$domains[0], $class->getDomain());
+        $this->assertEquals('test-images', $class->getName());
+        $this->assertEquals(2, $class->getCount());
     }
 
     public function testDuplicateCreate()
     {
         $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
-        $data = $classClient->create('test-images', 2);
-        $this->assertEquals(self::$domains[0], $data['domain']);
-        $this->assertEquals('test-images', $data['class']);
-        $this->assertEquals(2, $data['mindevcount']);
+        $class = $classClient->create('test-images', 2);
+        $this->assertInstanceOf(ClassInterface::class, $class);
 
-        $msg = 'MogileFs\Connection::doRequest() ERR class_exists That class already exists in that domain';
-        $this->expectExceptionMessage($msg);
-
-        $classClient->create('test-images', 3);
+        try {
+            $classClient->create('test-images', 3);
+        } catch (Exception $e) {
+            $this->assertInstanceOf(Response::class, $e->getResponse());
+            $this->assertTrue($e->getResponse()->isError());
+            $this->assertEquals('class_exists', $e->getMessage());
+        }
     }
 
     public function testChangeDomain()
     {
         $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
-        $data = $classClient->create('test-images', 2);
-        $this->assertEquals(self::$domains[0], $data['domain']);
-        $this->assertEquals('test-images', $data['class']);
-        $this->assertEquals(2, $data['mindevcount']);
+        $class = $classClient->create('test-images', 2);
+        $this->assertInstanceOf(ClassInterface::class, $class);
+        $this->assertEquals(self::$domains[0], $class->getDomain());
+        $this->assertEquals('test-images', $class->getName());
 
         $classClient->setDomain(self::$domains[1]);
 
-        $data = $classClient->create('test-images', 3);
-        $this->assertEquals(self::$domains[1], $data['domain']);
-        $this->assertEquals('test-images', $data['class']);
-        $this->assertEquals(3, $data['mindevcount']);
+        $class2 = $classClient->create('test-images', 3);
+        $this->assertInstanceOf(ClassInterface::class, $class2);
+        $this->assertEquals(self::$domains[1], $class2->getDomain());
+        $this->assertEquals('test-images', $class2->getName());
     }
 
     public function testUpdateClass()
     {
-        $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
-        $data = $classClient->create('test-images', 2);
-        $this->assertEquals(self::$domains[0], $data['domain']);
-        $this->assertEquals('test-images', $data['class']);
-        $this->assertEquals(2, $data['mindevcount']);
+        $classKey = 'test-images';
 
-        $data = $classClient->update('test-images', 6);
-        $this->assertEquals(6, $data['mindevcount']);
+        $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
+        $class = $classClient->create($classKey, 2);
+        $this->assertEquals(self::$domains[0], $class->getDomain());
+        $this->assertEquals($classKey, $class->getName());
+        $this->assertEquals(2, $class->getCount());
+
+        $updatedClass = $classClient->update($classKey, 6);
+        $this->assertEquals(6, $updatedClass->getCount());
     }
 
     public function testDeleteClass()
     {
         $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
-        $data = $classClient->create('test-images', 2);
-        $this->assertInternalType('array', $data);
+        $class = $classClient->create('test-images', 2);
+        $this->assertInstanceOf(ClassInterface::class, $class);
 
-        $data = $classClient->delete('test-images');
-        $this->assertEquals(self::$domains[0], $data['domain']);
-        $this->assertEquals('test-images', $data['class']);
-    }
-
-    public function testInvalidMinVCount()
-    {
-        $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
-        try {
-            $classClient->create('test-images', 'test');
-            $this->fail();
-        } catch (\InvalidArgumentException $e) {
-            $msg1 = 'MogileFs\Client\ClassClient::create() mindevcount must be an integer';
-            $this->assertEquals($msg1, $e->getMessage());
-        }
-        $classClient->create('test-images', 2);
-        try {
-            $classClient->update('test-images', 'test');
-            $this->fail();
-        } catch (\InvalidArgumentException $e) {
-            $msg2 = 'MogileFs\Client\ClassClient::update() mindevcount must be an integer';
-            $this->assertEquals($msg2, $e->getMessage());
-        }
+        $response = $classClient->delete('test-images');
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertTrue($response->isSuccess());
     }
 }
