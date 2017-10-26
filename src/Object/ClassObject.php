@@ -58,5 +58,4 @@ class ClassObject implements ClassInterface
     {
         return $this->domain;
     }
-
 }

@@ -47,7 +47,6 @@ class ClassClientTest extends AbstractClientTest
             $this->assertInstanceOf(Response::class, $e->getResponse());
             $this->assertTrue($e->getResponse()->isError());
             $this->assertEquals('class_exists', $e->getMessage());
-
         }
     }
 
