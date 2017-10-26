@@ -4,6 +4,10 @@ namespace MogileFs\Client;
 
 use InvalidArgumentException;
 use MogileFs\Connection;
+use MogileFs\Exception;
+use MogileFs\Object\ClassInterface;
+use MogileFs\Object\ClassObject;
+use MogileFs\Response;
 
 class ClassClient
 {
@@ -16,7 +20,7 @@ class ClassClient
         $this->domain = $domain;
     }
 
-    public function setDomain($domain)
+    public function setDomain(string $domain)
     {
         $this->domain = $domain;
     }
@@ -27,20 +31,21 @@ class ClassClient
      * @param string $class
      * @param int $mindevcount
      *
-     * @return int
-     * @throws InvalidArgumentException
+     * @return ClassInterface
      */
-    public function create($class, $mindevcount)
+    public function create(string $class, int $mindevcount): ClassInterface
     {
-        if (!is_int($mindevcount)) {
-            throw new InvalidArgumentException(get_class($this) . "::create() mindevcount must be an integer");
-        }
-
-        return $this->connection->request('CREATE_CLASS', [
+        $response = $this->connection->request('CREATE_CLASS', [
             'domain' => $this->domain,
             'class' => $class,
             'mindevcount' => $mindevcount,
         ]);
+
+        if ($response->isError()) {
+            throw Exception::error($response);
+        }
+        $data = $response->getData();
+        return new ClassObject($data['class'], $data['mindevcount'], $data['domain']);
     }
 
     /**
@@ -49,21 +54,23 @@ class ClassClient
      * @param string $class
      * @param int $mindevcount
      *
-     * @return int
-     * @throws InvalidArgumentException
+     * @return ClassInterface
      */
-    public function update($class, $mindevcount)
+    public function update(string $class, int $mindevcount): ClassInterface
     {
-        if (!is_int($mindevcount)) {
-            throw new InvalidArgumentException(get_class($this) . "::update() mindevcount must be an integer");
-        }
-
-        return $this->connection->request('UPDATE_CLASS', [
+        $response = $this->connection->request('UPDATE_CLASS', [
             'domain' => $this->domain,
             'class' => $class,
             'mindevcount' => $mindevcount,
             'update' => 1,
         ]);
+
+        if ($response->isError()) {
+            throw Exception::error($response);
+        }
+
+        $data = $response->getData();
+        return new ClassObject($data['class'], $data['mindevcount'], $data['domain']);
     }
 
     /**
@@ -71,9 +78,9 @@ class ClassClient
      *
      * @param string $class
      *
-     * @return int
+     * @return Response
      */
-    public function delete($class)
+    public function delete(string $class): Response
     {
         return $this->connection->request('DELETE_CLASS', [
             'domain' => $this->domain,

@@ -2,7 +2,13 @@
 
 namespace MogileFs\Client;
 
+use MogileFs\Collection;
 use MogileFs\Connection;
+use MogileFs\Exception;
+use MogileFs\Object\ClassObject;
+use MogileFs\Object\Domain;
+use MogileFs\Object\DomainInterface;
+use MogileFs\Response;
 
 class DomainClient
 {
@@ -18,13 +24,19 @@ class DomainClient
      *
      * @param string $domain
      *
-     * @return array
+     * @return DomainInterface
      */
-    public function create($domain)
+    public function create($domain): DomainInterface
     {
-        return $this->connection->request('CREATE_DOMAIN', [
+        $response = $this->connection->request('CREATE_DOMAIN', [
             'domain' => strtolower($domain),
         ]);
+        if ($response->isError()) {
+            throw Exception::error($response);
+        }
+        $data = $response->getData();
+
+        return new Domain($data['domain'], []);
     }
 
     /**
@@ -32,37 +44,49 @@ class DomainClient
      *
      * @param string $domain
      *
-     * @return int
+     * @return Response
      */
-    public function delete($domain)
+    public function delete($domain): Response
     {
-        return $this->connection->request('DELETE_DOMAIN', [
+        $response = $this->connection->request('DELETE_DOMAIN', [
             'domain' => $domain,
         ]);
+        if ($response->isError()) {
+            throw Exception::error($response);
+        }
+        return $response;
     }
 
     /**
      * Get all domains
      *
-     * @return array
+     * @return Collection
      */
-    public function all()
+    public function all(): Collection
     {
-        $res = $this->connection->request('GET_DOMAINS');
-
-        $domains = [];
-        for ($i = 1; $i <= $res['domains']; $i++) {
-            $dom = 'domain' . $i;
-            $classes = [];
-            for ($j = 1; $j <= $res[$dom . 'classes']; $j++) {
-                $classes[$res[$dom . 'class' . $j . 'name']] = $res[$dom . 'class' . $j . 'mindevcount'];
-            }
-            $domains[] = [
-                'name' => $res[$dom],
-                'classes' => $classes,
-            ];
+        $response = $this->connection->request('GET_DOMAINS');
+        if ($response->isError()) {
+            throw Exception::error($response);
         }
 
-        return $domains;
+        $data = $response->getData();
+        $collection = new Collection();
+
+        for ($i = 1; $i <= $data['domains']; $i++) {
+            $dom = 'domain' . $i;
+            $classes = [];
+            for ($j = 1; $j <= $data[$dom . 'classes']; $j++) {
+                $classes[] = new ClassObject(
+                    $data[$dom . 'class' . $j . 'name'],
+                    $data[$dom . 'class' . $j . 'mindevcount'],
+                    $data[$dom],
+                    $data[$dom . 'class' . $j . 'replpolicy'],
+                    $data[$dom . 'class' . $j . 'hashtype']
+                );
+            }
+            $collection[] = new Domain($data[$dom], $classes);
+        }
+
+        return $collection;
     }
 }
