@@ -44,6 +44,8 @@ class FileClientTest extends AbstractClientTest
         $this->assertInstanceOf(PathInterface::class, $path);
 
         $this->assertGreaterThanOrEqual(1, $path->getCount());
+        $this->assertInternalType('array', $path->getPaths());
+        $this->assertNotFalse(filter_var($path->getPath(), FILTER_VALIDATE_URL));
     }
 
     public function testGetInfoAboutKey()

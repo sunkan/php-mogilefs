@@ -57,6 +57,11 @@ class Connection
         return $this;
     }
 
+    public function getTrackers(): array
+    {
+        return $this->trackers;
+    }
+
     public function getResponse(): ?Response
     {
         return $this->response;

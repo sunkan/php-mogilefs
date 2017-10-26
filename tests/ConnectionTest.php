@@ -13,6 +13,34 @@ class ConnectionTest extends TestCase
         ]
     ];
 
+    public function testAddTracker()
+    {
+        $ports = [];
+        $ports[1] = Connection::DEFAULT_PORT;
+        $ports[2] = 1111;
+        $ports[3] = 2222;
+        $ports[4] = 3333;
+        $ports[5] = Connection::DEFAULT_PORT;
+        $connection = new Connection([]);
+        $connection->addTracker('127.0.0.1');
+        $connection->addTracker('127.0.0.2:' . $ports[2]);
+        $connection->addTracker('127.0.0.3', $ports[3]);
+        $connection->addTracker([
+            'host' => '127.0.0.4',
+            'port' => $ports[4]
+        ]);
+        $connection->addTracker([
+            'host' => '127.0.0.5',
+        ]);
+
+        $trackers = $connection->getTrackers();
+        for ($i = count($trackers); $i > 0; $i--) {
+            $tracker = $trackers[$i - 1];
+            $this->assertInternalType('string', $tracker);
+            $this->assertEquals('127.0.0.' . $i . ':' . $ports[$i], $tracker);
+        }
+    }
+
     public function testConnect()
     {
         $connection = new Connection($this->tracker);
