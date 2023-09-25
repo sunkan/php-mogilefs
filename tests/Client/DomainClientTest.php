@@ -15,7 +15,7 @@ class DomainClientTest extends AbstractClientTest
         'test-domain-client-2'
     ];
 
-    public function setUp()
+    public function setUp(): void
     {
         self::reset();
     }
@@ -80,7 +80,7 @@ class DomainClientTest extends AbstractClientTest
         $domain = $collection[0];
         $this->assertInstanceOf(DomainInterface::class, $domain);
         $this->assertTrue(in_array($domain->getDomain(), self::$domains));
-        $this->assertInternalType('array', $domain->getClasses());
+        $this->assertIsArray($domain->getClasses());
 
         /** @var ClassInterface $class */
         $class = $domain->getClasses()[0];

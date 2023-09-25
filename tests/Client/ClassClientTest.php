@@ -13,7 +13,7 @@ class ClassClientTest extends AbstractClientTest
         'test-domain-2'
     ];
 
-    public function setUp()
+    public function setUp(): void
     {
         self::reset();
         $domainClient = new DomainClient($this->getConnection());
@@ -25,7 +25,7 @@ class ClassClientTest extends AbstractClientTest
         }
     }
 
-    public function testCreateClass()
+    public function testCreateClass(): void
     {
         $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
         $class = $classClient->create('test-images', 2);
@@ -35,7 +35,7 @@ class ClassClientTest extends AbstractClientTest
         $this->assertEquals(2, $class->getCount());
     }
 
-    public function testDuplicateCreate()
+    public function testDuplicateCreate(): void
     {
         $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
         $class = $classClient->create('test-images', 2);
@@ -50,7 +50,7 @@ class ClassClientTest extends AbstractClientTest
         }
     }
 
-    public function testChangeDomain()
+    public function testChangeDomain(): void
     {
         $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
         $class = $classClient->create('test-images', 2);
@@ -66,7 +66,7 @@ class ClassClientTest extends AbstractClientTest
         $this->assertEquals('test-images', $class2->getName());
     }
 
-    public function testUpdateClass()
+    public function testUpdateClass(): void
     {
         $classKey = 'test-images';
 
@@ -80,7 +80,7 @@ class ClassClientTest extends AbstractClientTest
         $this->assertEquals(6, $updatedClass->getCount());
     }
 
-    public function testDeleteClass()
+    public function testDeleteClass(): void
     {
         $classClient = new ClassClient($this->getConnection(), self::$domains[0]);
         $class = $classClient->create('test-images', 2);

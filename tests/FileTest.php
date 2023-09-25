@@ -17,7 +17,7 @@ class FileTest extends TestCase
 
         list($resource, $size) = $file->getStream();
 
-        $this->assertInternalType('resource', $resource);
+        $this->assertIsResource($resource);
         $this->assertEquals(strlen($blobContent), $size);
     }
 }

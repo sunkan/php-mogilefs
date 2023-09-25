@@ -1,0 +1,15 @@
+version: "3.7"
+
+services:
+  php:
+    image: php:8.1-fpm
+    volumes:
+      - ..:/var/www/html
+    depends_on:
+      - mogilefs
+
+  mogilefs:
+    image: hrchu/mogilefs-all-in-one:latest
+    environment:
+      NODE_HOST: mogilefs
+      NODE_PORT: 7500
