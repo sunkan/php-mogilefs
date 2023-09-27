@@ -7,6 +7,7 @@ use ArrayIterator;
 use Countable;
 use IteratorAggregate;
 use JsonSerializable;
+use Traversable;
 
 class Collection implements ArrayAccess, IteratorAggregate, Countable, JsonSerializable
 {
@@ -20,7 +21,7 @@ class Collection implements ArrayAccess, IteratorAggregate, Countable, JsonSeria
     /**
      * {@inheritdoc}
      */
-    public function jsonSerialize()
+    public function jsonSerialize(): mixed
     {
         return $this->data;
     }
@@ -28,7 +29,7 @@ class Collection implements ArrayAccess, IteratorAggregate, Countable, JsonSeria
     /**
      * {@inheritdoc}
      */
-    public function count()
+    public function count(): int
     {
         return count($this->data);
     }
@@ -36,7 +37,7 @@ class Collection implements ArrayAccess, IteratorAggregate, Countable, JsonSeria
     /**
      * {@inheritdoc}
      */
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         return isset($this->data[$offset]);
     }
@@ -44,7 +45,7 @@ class Collection implements ArrayAccess, IteratorAggregate, Countable, JsonSeria
     /**
      * {@inheritdoc}
      */
-    public function offsetGet($offset)
+    public function offsetGet($offset): mixed
     {
         return $this->data[$offset];
     }
@@ -52,7 +53,7 @@ class Collection implements ArrayAccess, IteratorAggregate, Countable, JsonSeria
     /**
      * {@inheritdoc}
      */
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): void
     {
         if (!$offset) {
             $this->data[] = $value;
@@ -64,7 +65,7 @@ class Collection implements ArrayAccess, IteratorAggregate, Countable, JsonSeria
     /**
      * {@inheritdoc}
      */
-    public function offsetUnset($offset)
+    public function offsetUnset($offset): void
     {
         unset($this->data[$offset]);
     }
@@ -72,7 +73,7 @@ class Collection implements ArrayAccess, IteratorAggregate, Countable, JsonSeria
     /**
      * {@inheritdoc}
      */
-    public function getIterator()
+    public function getIterator(): Traversable
     {
         return new ArrayIterator($this->data);
     }

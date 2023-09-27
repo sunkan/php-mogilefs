@@ -17,7 +17,7 @@ class LocalFileTest extends TestCase
 
         list($resource, $size) = $localFile->getStream();
 
-        $this->assertInternalType('resource', $resource);
+        $this->assertIsResource($resource);
         $this->assertEquals(filesize($file), $size);
     }
 

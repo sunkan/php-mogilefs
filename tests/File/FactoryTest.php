@@ -18,7 +18,7 @@ class FactoryTest extends TestCase
 
         list($resource, $size) = $file->getStream();
 
-        $this->assertInternalType('resource', $resource);
+        $this->assertIsResource($resource);
         $this->assertEquals(strlen($testContent), $size);
     }
 
@@ -38,7 +38,7 @@ class FactoryTest extends TestCase
 
         list($resource, $size) = $file->getStream();
 
-        $this->assertInternalType('resource', $resource);
+        $this->assertIsResource($resource);
         $this->assertEquals($tmpResouce, $resource);
         $this->assertEquals(strlen($testContent), $size);
     }
@@ -54,7 +54,7 @@ class FactoryTest extends TestCase
 
         list($resource, $size) = $file->getStream();
 
-        $this->assertInternalType('resource', $resource);
+        $this->assertIsResource($resource);
         $this->assertEquals(filesize($localFile), $size);
     }
 

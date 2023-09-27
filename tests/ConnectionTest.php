@@ -8,7 +8,7 @@ class ConnectionTest extends TestCase
 {
     private $tracker = [
         [
-            'host' => '127.0.0.1',
+            'host' => 'mogilefs',
             'port' => 7001
         ]
     ];
@@ -22,7 +22,7 @@ class ConnectionTest extends TestCase
         $ports[4] = 3333;
         $ports[5] = Connection::DEFAULT_PORT;
         $connection = new Connection([]);
-        $connection->addTracker('127.0.0.1');
+        $connection->addTracker('mogilefs');
         $connection->addTracker('127.0.0.2:' . $ports[2]);
         $connection->addTracker('127.0.0.3', $ports[3]);
         $connection->addTracker([
@@ -33,11 +33,18 @@ class ConnectionTest extends TestCase
             'host' => '127.0.0.5',
         ]);
 
+        $expectedTrackers = [
+            'mogilefs:7001',
+            '127.0.0.2:1111',
+            '127.0.0.3:2222',
+            '127.0.0.4:3333',
+            '127.0.0.5:7001',
+        ];
+
         $trackers = $connection->getTrackers();
-        for ($i = count($trackers); $i > 0; $i--) {
-            $tracker = $trackers[$i - 1];
-            $this->assertInternalType('string', $tracker);
-            $this->assertEquals('127.0.0.' . $i . ':' . $ports[$i], $tracker);
+        foreach ($trackers as $i => $tracker) {
+            $this->assertIsString($tracker);
+            $this->assertEquals($expectedTrackers[$i], $tracker);
         }
     }
 
@@ -46,7 +53,7 @@ class ConnectionTest extends TestCase
         $connection = new Connection($this->tracker);
         $this->assertFalse($connection->isConnected());
         $resource = $connection->connect();
-        $this->assertInternalType('resource', $resource);
+        $this->assertIsResource($resource);
         $this->assertTrue($connection->isConnected());
     }
 
@@ -55,13 +62,13 @@ class ConnectionTest extends TestCase
         $connection = new Connection($this->tracker);
         $socket = $connection->connect();
         $socket2 = $connection->connect();
-        $this->assertInternalType('resource', $socket);
+        $this->assertIsResource($socket);
         $this->assertSame($socket, $socket2);
     }
 
     public function testDefaultPort()
     {
-        $connection = new Connection([['host' => '127.0.0.1']]);
+        $connection = new Connection([['host' => 'mogilefs']]);
         $connection->connect();
         $this->assertTrue($connection->isConnected());
     }

@@ -10,7 +10,7 @@ abstract class AbstractClientTest extends TestCase
 {
     protected static $tracker = [
         [
-            'host' => '127.0.0.1',
+            'host' => 'mogilefs',
             'port' => 7001
         ]
     ];
@@ -35,9 +35,11 @@ abstract class AbstractClientTest extends TestCase
             $fileClient->setDomain($domain->getDomain());
             try {
                 $keys = $fileClient->listKeys('', '', 1000);
-                if (count($keys)) {
+                if (!is_null($keys) && count($keys)) {
                     foreach ($keys as $key) {
-                        $fileClient->delete($key);
+                        if (!is_null($key)) {
+                            $fileClient->delete($key);
+                        }
                     }
                 }
             } catch (\Exception $e) {
@@ -58,7 +60,7 @@ abstract class AbstractClientTest extends TestCase
         }
     }
 
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         self::reset();
     }

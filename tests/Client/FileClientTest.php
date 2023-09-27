@@ -16,7 +16,7 @@ class FileClientTest extends AbstractClientTest
         'test-file-client-2'
     ];
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->reset();
         $domainClient = new DomainClient($this->getConnection());
@@ -44,7 +44,7 @@ class FileClientTest extends AbstractClientTest
         $this->assertInstanceOf(PathInterface::class, $path);
 
         $this->assertGreaterThanOrEqual(1, $path->getCount());
-        $this->assertInternalType('array', $path->getPaths());
+        $this->assertIsArray($path->getPaths());
         $this->assertNotFalse(filter_var($path->getPath(), FILTER_VALIDATE_URL));
     }
 
@@ -136,7 +136,7 @@ class FileClientTest extends AbstractClientTest
         $this->assertGreaterThanOrEqual(1, $file->getFileCount());
         $this->assertEquals('images', $file->getFileClass());
         $this->assertEquals(self::$domains[0], $file->getDomain());
-        $this->assertRegExp('/test\/list\-key\-\d/', $file->getKey());
+        $this->assertMatchesRegularExpression('/test\/list\-key\-\d/', $file->getKey());
         $this->assertEquals(strlen($content) + 2, $file->getSize());
     }
 }
